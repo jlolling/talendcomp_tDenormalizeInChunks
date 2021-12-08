@@ -1,0 +1,71 @@
+<%@ jet
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.core.model.utils.NodeUtil
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		java.util.List 
+		java.util.ArrayList 
+	"
+%>
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode) codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	String incomingColumn = ElementParameterParser.getValue(node, "__INPUT_COLUMN__");
+	String outputColumn = ElementParameterParser.getValue(node, "__DENORMALIZED_OUTPUT_COLUMN__");
+	String incomingConnName = null;
+	List<IMetadataColumn> listIncomingColumns = new ArrayList<IMetadataColumn>();
+	List<? extends IConnection> inConns = NodeUtil.getIncomingConnections(node, IConnectionCategory.DATA);
+	if (inConns != null && inConns.isEmpty() == false) {
+	    IConnection inConn = inConns.get(0);
+	    incomingConnName = inConn.getName();
+		IMetadataTable metadata = node.getMetadataFromConnector(inConn.getConnectorName());
+		listIncomingColumns = metadata.getListColumns();
+	}
+	List<IMetadataColumn> listOutgoingColumns = new ArrayList<IMetadataColumn>(); // dummy
+	String outgoingConnName = null;
+	List<? extends IConnection> outConns = NodeUtil.getOutgoingConnections(node, IConnectionCategory.DATA);
+	if (outConns != null && outConns.isEmpty() == false) {
+	    IConnection outConn = outConns.get(0);
+	    outgoingConnName = outConn.getName();
+		IMetadataTable metadata = node.getMetadataFromConnector(outConn.getConnectorName());
+		listOutgoingColumns = metadata.getListColumns();
+	}
+%>
+	// create a struct for holding the first row
+	
+	// add value
+	if (<%=incomingConnName%>Prev == null) {
+		<%=incomingConnName%>Prev = <%=incomingConnName%>;
+	}
+	<%=cid%>.addValue(<%=incomingConnName%>.<%=incomingColumn%>);
+	nb_line_incoming_<%=cid%>++;
+	// no check if we have filled a new output chunk 
+	if (<%=cid%>.next()) {
+	    nb_line_outgoing_<%=cid%>++;
+		globalMap.put("<%=cid%>_VALUES_AS_LIST", <%=cid%>.getDenormalizedValues());
+		globalMap.put("<%=cid%>_NB_VALUES_IN_LIST", <%=cid%>.getDenormalizedValueCount());
+<%  if (outgoingConnName != null) { %>	
+		<%=outgoingConnName%>.<%=outputColumn%> = <%=cid%>.getDenormalizedValues();
+<%	} %>
+	// transfer all other columns
+<%	if (incomingConnName != null && outgoingConnName != null) {
+		for (int i = 0; i < listOutgoingColumns.size(); i++) {
+			IMetadataColumn mc = listOutgoingColumns.get(i);
+			String name = mc.getLabel();
+				for (IMetadataColumn incol : listIncomingColumns) { %>
+<%					if (incol.getLabel().equals(mc.getLabel())) {
+						if (name.equals(outputColumn) == false) { %>
+		<%=outgoingConnName%>.<%=mc.getLabel()%> = <%=incomingConnName%>Prev.<%=incol.getLabel()%>;
+<%					}
+					break;
+				}
+			}
+		}
+	} %>
+		<%=incomingConnName%>Prev = null;

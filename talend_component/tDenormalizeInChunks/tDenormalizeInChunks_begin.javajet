@@ -1,0 +1,54 @@
+<%@ jet
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.core.model.utils.NodeUtil
+		java.util.List 
+	"
+%>
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode) codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	String countValuesInChain = ElementParameterParser.getValue(node, "__COUNT_VALUES_IN_CHAIN__");
+	String expectedCount = ElementParameterParser.getValue(node, "__EXPECTED_COUNT_INPUT_ROWS__");
+	if (expectedCount == null || expectedCount.trim().isEmpty()) {
+		expectedCount = "0";
+	}
+	String endMarker = ElementParameterParser.getValue(node, "__END_MARKER_VALUE__");
+	if (endMarker == null || endMarker.trim().isEmpty()) {
+		endMarker = "null";
+	}
+	String delimiter = ElementParameterParser.getValue(node, "__DELIMITER__");
+	String enclosure = ElementParameterParser.getValue(node, "__ENCLOSURE__");
+	if (enclosure == null || enclosure.trim().isEmpty()) {
+		enclosure = "null";
+	}
+	String datePattern = ElementParameterParser.getValue(node, "__DATE_FORMAT__");
+	if (datePattern == null || datePattern.trim().isEmpty()) {
+		datePattern = "null";
+  	}
+	String incomingConnName = null;
+	List<? extends IConnection> inConns = NodeUtil.getIncomingConnections(node, IConnectionCategory.DATA);
+	if (inConns != null && inConns.isEmpty() == false) {
+	    IConnection inConn = inConns.get(0);
+	    incomingConnName = inConn.getName();
+	}
+%>
+	de.jlo.talendcomp.denormalize.Denormalize <%=cid%> = new de.jlo.talendcomp.denormalize.Denormalize();
+	// setup output line
+	<%=cid%>.setDelimiter(<%=delimiter%>);
+	<%=cid%>.setEnclosure(<%=enclosure%>);
+	<%=cid%>.setDatePattern(<%=datePattern%>);
+	<%=cid%>.setCountValuesInChain(<%=countValuesInChain%>);
+	// setup check last input value
+	<%=cid%>.setExpectedInputCount(<%=expectedCount%>);
+	<%=cid%>.setEndMarker(<%=endMarker%>);
+	int nb_line_incoming_<%=cid%> = 0;
+	int nb_line_outgoing_<%=cid%> = 0;
+<%	if (incomingConnName != null) { %>
+	<%=incomingConnName%>Struct <%=incomingConnName%>Prev = null;
+<%	} %>
