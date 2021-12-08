@@ -12,10 +12,11 @@ You can also setup the delimiter between the values in the out going line (the d
 
 ![Example Job](https://github.com/jlolling/talendcomp_tDenormalizeInChunks/blob/master/doc/tDenormalizeInChunks_demo_jobdesign.png)
 
+Columns from the incoming flow (except the column for the chain itself) will passed to the outgoing flow if they are exist on both sides.
+It takes the values from the first row used to fill the current value chain (denormalized values)
 
 ## Here the component settings:
 ![Component settings](https://github.com/jlolling/talendcomp_tDenormalizeInChunks/blob/master/doc/tDenormalizeInChunks_demo_jobdesign_compsetting.png)
 
 
-Columns from the incoming flow will passed to the outgoing flow if they are exist on both sides.
-It takes the values from the first row used to fill the current value chain (denormalized values)
+
